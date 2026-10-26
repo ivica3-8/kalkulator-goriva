@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="hr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#174ea6">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Gorivo">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <title>Izracun troska goriva</title>
+  <style>
+    :root { color-scheme: light; --blue:#174ea6; --bg:#f3f6fb; --card:#fff; --text:#172033; --muted:#647084; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:var(--bg); color:var(--text); }
+    main { width:min(100% - 28px, 520px); margin:0 auto; padding: max(28px, env(safe-area-inset-top)) 0 max(28px, env(safe-area-inset-bottom)); }
+    .card { background:var(--card); border-radius:22px; padding:24px 20px; box-shadow:0 8px 28px rgba(20,40,80,.08); }
+    h1 { font-size:25px; line-height:1.2; text-align:center; margin:4px 0 8px; letter-spacing:.2px; }
+    .sub { text-align:center; color:var(--muted); margin:0 0 25px; font-size:14px; }
+    label { display:block; font-size:15px; font-weight:600; margin:16px 0 7px; }
+    input { width:100%; font:inherit; font-size:18px; padding:14px 13px; border:1px solid #cbd4e1; border-radius:12px; background:white; color:var(--text); }
+    input:focus { outline:3px solid #d7e5ff; border-color:var(--blue); }
+    button { width:100%; border:0; border-radius:12px; padding:15px; font:inherit; font-weight:700; font-size:16px; margin-top:18px; }
+    .primary { background:var(--blue); color:white; }
+    .secondary { background:#e9eef7; color:#18345d; margin-top:10px; }
+    .results { background:#eef4ff; border-radius:14px; padding:16px; margin-top:20px; }
+    .result-line { display:flex; justify-content:space-between; gap:10px; padding:7px 0; font-size:16px; }
+    .result-line strong { text-align:right; }
+    .total { border-top:1px solid #c8d9f5; margin-top:5px; padding-top:13px; font-size:19px; }
+    .hint { color:var(--muted); font-size:12px; line-height:1.45; text-align:center; margin:18px 6px 0; }
+    .error { color:#b42318; font-size:14px; margin-top:12px; }
+  </style>
+</head>
+<body>
+<main>
+  <section class="card">
+    <h1>IZRACUN TROSKA GORIVA</h1>
+    <p class="sub">Jednostavan kalkulator za svaku voznju</p>
+    <form id="fuelForm">
+      <label for="km">Kilometri</label>
+      <input id="km" inputmode="decimal" autocomplete="off" placeholder="npr. 150" required>
+      <label for="consumption">Potrosnja (L/100 km)</label>
+      <input id="consumption" inputmode="decimal" autocomplete="off" placeholder="npr. 8,5" required>
+      <label for="price">Cijena goriva (EUR/L)</label>
+      <input id="price" inputmode="decimal" autocomplete="off" placeholder="npr. 1,85" required>
+      <button class="primary" type="submit">IZRACUNAJ</button>
+    </form>
+    <div id="error" class="error" role="alert" hidden></div>
+    <section class="results" aria-live="polite">
+      <div class="result-line"><span>Potroseno goriva</span><strong id="litres">— L</strong></div>
+      <div class="result-line total"><span>Ukupni trosak</span><strong id="cost">— EUR</strong></div>
+    </section>
+    <button class="secondary" id="reset" type="button">NOVI IZRACUN</button>
+    <p class="hint">Unos prihvaca decimalni zarez ili tocku. Nakon prvog ucitavanja aplikacija moze raditi i bez interneta kada je pravilno postavljena na web.</p>
+  </section>
+</main>
+<script>
+  const form = document.getElementById('fuelForm');
+  const fields = ['km','consumption','price'].map(id => document.getElementById(id));
+  const error = document.getElementById('error');
+  function numberFrom(input) { return Number(input.value.trim().replace(',', '.')); }
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const [km, consumption, price] = fields.map(numberFrom);
+    if (![km, consumption, price].every(Number.isFinite) || km < 0 || consumption < 0 || price < 0 || fields.some(f => f.value.trim() === '')) {
+      error.textContent = 'Molim upisi ispravne brojeve. Vrijednosti ne mogu biti negativne.';
+      error.hidden = false;
+      return;
+    }
+    error.hidden = true;
+    const litres = km * consumption / 100;
+    const cost = litres * price;
+    document.getElementById('litres').textContent = litres.toLocaleString('hr-HR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' L';
+    document.getElementById('cost').textContent = cost.toLocaleString('hr-HR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' EUR';
+  });
+  document.getElementById('reset').addEventListener('click', () => {
+    form.reset();
+    document.getElementById('litres').textContent = '— L';
+    document.getElementById('cost').textContent = '— EUR';
+    error.hidden = true;
+    fields[0].focus();
+  });
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(() => {}));
+  }
+</script>
+</body>
+</html>
